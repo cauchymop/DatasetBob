@@ -60,13 +60,10 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.cauchymop.datasetbob.KEY_EVENT_ACTION
 import com.cauchymop.datasetbob.KEY_EVENT_EXTRA
 import com.cauchymop.datasetbob.MainActivity
-import com.cauchymop.datasetbob.utils.ANIMATION_FAST_MILLIS
-import com.cauchymop.datasetbob.utils.ANIMATION_SLOW_MILLIS
-import com.cauchymop.datasetbob.utils.AutoFitPreviewBuilder
-import com.cauchymop.datasetbob.utils.simulateClick
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.cauchymop.datasetbob.R
+import com.cauchymop.datasetbob.utils.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -81,14 +78,16 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-/** Helper type alias used for analysis use case callbacks */
-typealias LumaListener = (luma: Double) -> Unit
+private const val TAG = "CameraXBasic"
+private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
+private const val PHOTO_EXTENSION = ".jpg"
+private const val RATIO_4_3_VALUE = 4.0 / 3.0
+private const val RATIO_16_9_VALUE = 16.0 / 9.0
 
 /**
  * Main fragment for this app. Implements all camera operations including:
  * - Viewfinder
  * - Photo taking
- * - Image analysis
  */
 class CameraFragment : Fragment() {
 
@@ -102,18 +101,13 @@ class CameraFragment : Fragment() {
     private var lensFacing = CameraX.LensFacing.BACK
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
-    private var imageAnalyzer: ImageAnalysis? = null
 
     /** Volume down button receiver used to trigger shutter */
     private val volumeDownReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.getIntExtra(KEY_EVENT_EXTRA, KeyEvent.KEYCODE_UNKNOWN)) {
                 // When the volume down button is pressed, simulate a shutter button click
-                KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                    val shutter = container
-                            .findViewById<ImageButton>(R.id.camera_capture_button)
-                    shutter.simulateClick()
-                }
+                KeyEvent.KEYCODE_VOLUME_DOWN -> takePicture()
             }
         }
     }
@@ -134,7 +128,6 @@ class CameraFragment : Fragment() {
                 Log.d(TAG, "Rotation changed: ${view.display.rotation}")
                 preview?.setTargetRotation(view.display.rotation)
                 imageCapture?.setTargetRotation(view.display.rotation)
-                imageAnalyzer?.setTargetRotation(view.display.rotation)
             }
         } ?: Unit
     }
@@ -238,7 +231,7 @@ class CameraFragment : Fragment() {
         displayManager.registerDisplayListener(displayListener, null)
 
         // Determine the output directory
-        outputDirectory = MainActivity.getOutputDirectory(requireContext())
+        outputDirectory = getOutputDirectory(requireContext())
 
         // Wait for the views to be properly laid out
         viewFinder.post {
@@ -271,7 +264,7 @@ class CameraFragment : Fragment() {
         updateCameraUi()
     }
 
-    /** Declare and bind preview, capture and analysis use cases */
+    /** Declare and bind preview and capture use cases */
     private fun bindCameraUseCases() {
 
         // Get screen metrics used to setup camera for full screen resolution
@@ -316,21 +309,8 @@ class CameraFragment : Fragment() {
             setTargetRotation(viewFinder.display.rotation)
         }.build()
 
-        imageAnalyzer = ImageAnalysis(analyzerConfig).apply {
-            setAnalyzer(mainExecutor,
-                LuminosityAnalyzer { luma ->
-                  // Values returned from our analyzer are passed to the attached listener
-                  // We log image analysis results here --
-                  // you should do something useful instead!
-                  val fps = (analyzer as LuminosityAnalyzer).framesPerSecond
-                  Log.d(TAG, "Average luminosity: $luma. " +
-                      "Frames per second: ${"%.01f".format(fps)}")
-                })
-        }
-
         // Apply declared configs to CameraX using the same lifecycle owner
-        CameraX.bindToLifecycle(
-                viewLifecycleOwner, preview, imageCapture, imageAnalyzer)
+        CameraX.bindToLifecycle(viewLifecycleOwner, preview, imageCapture)
     }
 
     /**
@@ -367,32 +347,7 @@ class CameraFragment : Fragment() {
 
         // Listener for button used to capture photo
         controls.findViewById<ImageButton>(R.id.camera_capture_button).setOnClickListener {
-            // Get a stable reference of the modifiable image capture use case
-            imageCapture?.let { imageCapture ->
-
-                // Create output file to hold the image
-                val photoFile = createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
-
-                // Setup image capture metadata
-                val metadata = Metadata().apply {
-                    // Mirror image when using the front camera
-                    isReversedHorizontal = lensFacing == CameraX.LensFacing.FRONT
-                }
-
-                // Setup image capture listener which is triggered after photo has been taken
-                imageCapture.takePicture(photoFile, metadata, mainExecutor, imageSavedListener)
-
-                // We can only change the foreground Drawable using API level 23+ API
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-
-                    // Display flash animation to indicate that photo was captured
-                    container.postDelayed({
-                        container.foreground = ColorDrawable(Color.WHITE)
-                        container.postDelayed(
-                                { container.foreground = null }, ANIMATION_FAST_MILLIS)
-                    }, ANIMATION_SLOW_MILLIS)
-                }
-            }
+            takePicture()
         }
 
         // Listener for button used to switch cameras
@@ -421,99 +376,33 @@ class CameraFragment : Fragment() {
         }
     }
 
+    private fun takePicture() {
+        // Get a stable reference of the modifiable image capture use case
+        imageCapture?.let { imageCapture ->
 
-    /**
-     * Our custom image analysis class.
-     *
-     * <p>All we need to do is override the function `analyze` with our desired operations. Here,
-     * we compute the average luminosity of the image by looking at the Y plane of the YUV frame.
-     */
-    private class LuminosityAnalyzer(listener: LumaListener? = null) : ImageAnalysis.Analyzer {
-        private val frameRateWindow = 8
-        private val frameTimestamps = ArrayDeque<Long>(5)
-        private val listeners = ArrayList<LumaListener>().apply { listener?.let { add(it) } }
-        private var lastAnalyzedTimestamp = 0L
-        var framesPerSecond: Double = -1.0
-            private set
+            // Create output file to hold the image
+            val photoFile = createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
 
-        /**
-         * Used to add listeners that will be called with each luma computed
-         */
-        fun onFrameAnalyzed(listener: LumaListener) = listeners.add(listener)
+            // Setup image capture metadata
+            val metadata = Metadata().apply {
+                // Mirror image when using the front camera
+                isReversedHorizontal = lensFacing == CameraX.LensFacing.FRONT
+            }
 
-        /**
-         * Helper extension function used to extract a byte array from an image plane buffer
-         */
-        private fun ByteBuffer.toByteArray(): ByteArray {
-            rewind()    // Rewind the buffer to zero
-            val data = ByteArray(remaining())
-            get(data)   // Copy the buffer into a byte array
-            return data // Return the byte array
-        }
+            // Setup image capture listener which is triggered after photo has been taken
+            imageCapture.takePicture(photoFile, metadata, mainExecutor, imageSavedListener)
 
-        /**
-         * Analyzes an image to produce a result.
-         *
-         * <p>The caller is responsible for ensuring this analysis method can be executed quickly
-         * enough to prevent stalls in the image acquisition pipeline. Otherwise, newly available
-         * images will not be acquired and analyzed.
-         *
-         * <p>The image passed to this method becomes invalid after this method returns. The caller
-         * should not store external references to this image, as these references will become
-         * invalid.
-         *
-         * @param image image being analyzed VERY IMPORTANT: do not close the image, it will be
-         * automatically closed after this method returns
-         * @return the image analysis result
-         */
-        override fun analyze(image: ImageProxy, rotationDegrees: Int) {
-            // If there are no listeners attached, we don't need to perform analysis
-            if (listeners.isEmpty()) return
+            // We can only change the foreground Drawable using API level 23+ API
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
 
-            // Keep track of frames analyzed
-            val currentTime = System.currentTimeMillis()
-            frameTimestamps.push(currentTime)
-
-            // Compute the FPS using a moving average
-            while (frameTimestamps.size >= frameRateWindow) frameTimestamps.removeLast()
-            val timestampFirst = frameTimestamps.peekFirst() ?: currentTime
-            val timestampLast = frameTimestamps.peekLast() ?: currentTime
-            framesPerSecond = 1.0 / ((timestampFirst - timestampLast) /
-                    frameTimestamps.size.coerceAtLeast(1).toDouble()) * 1000.0
-
-            // Calculate the average luma no more often than every second
-            if (frameTimestamps.first - lastAnalyzedTimestamp >= TimeUnit.SECONDS.toMillis(1)) {
-                lastAnalyzedTimestamp = frameTimestamps.first
-
-                // Since format in ImageAnalysis is YUV, image.planes[0] contains the luminance
-                //  plane
-                val buffer = image.planes[0].buffer
-
-                // Extract image data from callback object
-                val data = buffer.toByteArray()
-
-                // Convert the data into an array of pixel values ranging 0-255
-                val pixels = data.map { it.toInt() and 0xFF }
-
-                // Compute average luminance for the image
-                val luma = pixels.average()
-
-                // Call all listeners with new value
-                listeners.forEach { it(luma) }
+                // Display flash animation to indicate that photo was captured
+                container.postDelayed({
+                    container.foreground = ColorDrawable(Color.WHITE)
+                    container.postDelayed(
+                        { container.foreground = null }, ANIMATION_FAST_MILLIS
+                    )
+                }, ANIMATION_SLOW_MILLIS)
             }
         }
-    }
-
-    companion object {
-        private const val TAG = "CameraXBasic"
-        private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
-        private const val PHOTO_EXTENSION = ".jpg"
-        private const val RATIO_4_3_VALUE = 4.0 / 3.0
-        private const val RATIO_16_9_VALUE = 16.0 / 9.0
-
-        /** Helper function used to create a timestamped file */
-        private fun createFile(baseFolder: File, format: String, extension: String) =
-                File(baseFolder, SimpleDateFormat(format, Locale.US)
-                        .format(System.currentTimeMillis()) + extension)
     }
 }
