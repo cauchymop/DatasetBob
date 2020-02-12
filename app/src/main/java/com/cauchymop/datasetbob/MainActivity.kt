@@ -75,15 +75,7 @@ class MainActivity : AppCompatActivity() {
         resultData: Intent?
     ) {
         when (requestCode) {
-            REQUEST_CODE_SIGN_IN -> /*if (resultCode == Activity.RESULT_OK && resultData != null)*/ {
-                handleSignInResult(resultData)
-//            } else {
-//                Log.d(TAG, "Error signing in: " + resultCode)
-            }
-//            REQUEST_CODE_OPEN_DOCUMENT -> if (resultCode == Activity.RESULT_OK && resultData != null) {
-//                val uri = resultData.data
-//                uri?.let { openFileFromFilePicker(it) }
-//            }
+            REQUEST_CODE_SIGN_IN -> handleSignInResult(resultData)
         }
         super.onActivityResult(requestCode, resultCode, resultData)
     }
@@ -124,7 +116,6 @@ class MainActivity : AppCompatActivity() {
                     .build()
                 // The DriveServiceHelper encapsulates all REST API and SAF functionality.
 // Its instantiation is required before handling any onClick actions.
-                println("Helene")
                 driveServiceHelper = DriveServiceHelper(googleDriveService).also {
                     val queryFiles = it.queryFiles()
                     queryFiles.addOnSuccessListener { println("Files success: ${it.files}") }

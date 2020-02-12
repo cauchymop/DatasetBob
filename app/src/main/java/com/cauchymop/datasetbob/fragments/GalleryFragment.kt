@@ -16,27 +16,24 @@
 
 package com.cauchymop.datasetbob.fragments
 
+import android.media.MediaScannerConnection
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageButton
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
-import androidx.viewpager.widget.ViewPager
-import java.io.File
-import android.media.MediaScannerConnection
-import android.os.Build
-import android.widget.Button
-import androidx.constraintlayout.widget.ConstraintLayout
-import com.cauchymop.datasetbob.utils.padWithDisplayCutout
-import androidx.appcompat.app.AlertDialog
 import androidx.gridlayout.widget.GridLayout
 import androidx.navigation.Navigation
 import androidx.navigation.fragment.navArgs
+import androidx.viewpager.widget.ViewPager
 import com.cauchymop.datasetbob.R
 import com.cauchymop.datasetbob.utils.showImmersive
+import java.io.File
 import kotlin.math.ceil
 
 
@@ -116,10 +113,10 @@ class GalleryFragment internal constructor() : Fragment() {
 //    })
 
     // Make sure that the cutout "safe area" avoids the screen notch if any
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-      // Use extension method to pad "inside" view containing UI using display cutout's bounds
-      view.findViewById<ConstraintLayout>(R.id.cutout_safe_area).padWithDisplayCutout()
-    }
+//    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+//      // Use extension method to pad "inside" view containing UI using display cutout's bounds
+//      view.findViewById<ConstraintLayout>(R.id.cutout_safe_area).padWithDisplayCutout()
+//    }
 
     // Handle back button press
     view.findViewById<ImageButton>(R.id.back_button).setOnClickListener {
@@ -128,34 +125,47 @@ class GalleryFragment internal constructor() : Fragment() {
 
     // Handle delete button press
     view.findViewById<ImageButton>(R.id.delete_button).setOnClickListener {
-      AlertDialog.Builder(view.context, android.R.style.Theme_Material_Dialog)
-          .setTitle(getString(R.string.delete_title))
-          .setMessage(getString(R.string.delete_dialog))
-          .setIcon(android.R.drawable.ic_dialog_alert)
-          .setPositiveButton(android.R.string.yes) { _, _ ->
-            mediaList.getOrNull(mediaViewPager.currentItem)?.let { mediaFile ->
-
-              // Delete current photo
-              mediaFile.delete()
-
-              // Send relevant broadcast to notify other apps of deletion
-              MediaScannerConnection.scanFile(
-                  view.context, arrayOf(mediaFile.absolutePath), null, null)
-
-              // Notify our view pager
-              mediaList.removeAt(mediaViewPager.currentItem)
-              mediaViewPager.adapter?.notifyDataSetChanged()
-
-              // If all photos have been deleted, return to camera
-              if (mediaList.isEmpty()) {
-                fragmentManager?.popBackStack()
-              }
-            }
-          }
-
-          .setNegativeButton(android.R.string.no, null)
-          .create().showImmersive()
+      onDelete(view)
     }
+
+    view.findViewById<ImageButton>(R.id.choose_dataset).setOnClickListener {
+      onChooseDataset()
+    }
+  }
+
+  private fun onChooseDataset() {
+
+  }
+
+  private fun GalleryFragment.onDelete(view: View) {
+    AlertDialog.Builder(view.context, android.R.style.Theme_Material_Dialog)
+      .setTitle(getString(R.string.delete_title))
+      .setMessage(getString(R.string.delete_dialog))
+      .setIcon(android.R.drawable.ic_dialog_alert)
+      .setPositiveButton(android.R.string.yes) { _, _ ->
+        mediaList.getOrNull(mediaViewPager.currentItem)?.let { mediaFile ->
+
+          // Delete current photo
+          mediaFile.delete()
+
+          // Send relevant broadcast to notify other apps of deletion
+          MediaScannerConnection.scanFile(
+            view.context, arrayOf(mediaFile.absolutePath), null, null
+          )
+
+          // Notify our view pager
+          mediaList.removeAt(mediaViewPager.currentItem)
+          mediaViewPager.adapter?.notifyDataSetChanged()
+
+          // If all photos have been deleted, return to camera
+          if (mediaList.isEmpty()) {
+            fragmentManager?.popBackStack()
+          }
+        }
+      }
+
+      .setNegativeButton(android.R.string.no, null)
+      .create().showImmersive()
   }
 
   private fun classify(label: String) {

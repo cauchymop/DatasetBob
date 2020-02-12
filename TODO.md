@@ -1,12 +1,9 @@
 TODO
 ====
 
-* Load the list of labels from folders below "DATASET_BOB"
-* The only thing needed to configure is the folder (or name of the Dataset below DATASET_BOB)
-* At startup the app reads the list of folders below a given dataset, this is the list of labels
-* When we classify, we copy the image to the right folder (no rename needed anymore possibly)
-
-* For sync:
-** For each file:
-*** If it's already uploaded, check its folder (and change it if needed)
-*** Or upload it in the right folder. 
+* Extract the Google SignIn code possibly to View Model (maybe following this: https://medium.com/androiddevelopers/lifecycle-aware-data-loading-with-android-architecture-components-f95484159de4)
+* Implement onChooseDatasetClick:
+   * Load the list of labels from folders below "Datasets"
+   * Let the use choose one
+   * Reads the list of folders below the selected dataset, this is the list of labels
+* When the user classify, we upload and delete directly
