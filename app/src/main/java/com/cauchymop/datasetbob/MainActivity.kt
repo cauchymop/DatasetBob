@@ -16,25 +16,14 @@
 
 package com.cauchymop.datasetbob
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProviders
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.cauchymop.datasetbob.utils.DriveServiceHelper
 import com.cauchymop.datasetbob.utils.FLAGS_FULLSCREEN
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.Scope
-import com.google.api.client.extensions.android.http.AndroidHttp
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
-import com.google.api.client.json.gson.GsonFactory
-import com.google.api.services.drive.Drive
-import com.google.api.services.drive.DriveScopes
 
 
 const val KEY_EVENT_ACTION = "key_event_action"
@@ -42,8 +31,7 @@ const val KEY_EVENT_EXTRA = "key_event_extra"
 
 private const val IMMERSIVE_FLAG_TIMEOUT = 500L
 private const val TAG = "MainActivity"
-private const val REQUEST_CODE_SIGN_IN = 1
-private const val REQUEST_CODE_OPEN_DOCUMENT = 2
+
 
 /**
  * Main entry point into our app. This app follows the single-activity pattern, and all
@@ -51,13 +39,13 @@ private const val REQUEST_CODE_OPEN_DOCUMENT = 2
  */
 class MainActivity : AppCompatActivity() {
     private lateinit var container: FrameLayout
-    private var driveServiceHelper: DriveServiceHelper? = null
+    private lateinit var viewModel: DatasetBobViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        viewModel = ViewModelProviders.of(this).get(DatasetBobViewModel::class.java)
         container = findViewById(R.id.fragment_container)
-        requestSignIn()
     }
 
     override fun onResume() {
@@ -72,62 +60,9 @@ class MainActivity : AppCompatActivity() {
     public override fun onActivityResult(
         requestCode: Int,
         resultCode: Int,
-        resultData: Intent?
-    ) {
-        when (requestCode) {
-            REQUEST_CODE_SIGN_IN -> handleSignInResult(resultData)
-        }
+        resultData: Intent?) {
         super.onActivityResult(requestCode, resultCode, resultData)
-    }
-
-    /**
-     * Starts a sign-in activity using [.REQUEST_CODE_SIGN_IN].
-     */
-    private fun requestSignIn() {
-        Log.d(TAG, "Requesting sign-in")
-        val signInOptions =
-            GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestEmail()
-                .requestScopes(Scope(DriveScopes.DRIVE))
-                .build()
-        val client = GoogleSignIn.getClient(this, signInOptions)
-        // The result of the sign-in Intent is handled in onActivityResult.
-        startActivityForResult(client.signInIntent, REQUEST_CODE_SIGN_IN)
-    }
-
-    /**
-     * Handles the `result` of a completed sign-in activity initiated from [ ][.requestSignIn].
-     */
-    private fun handleSignInResult(result: Intent?) {
-        GoogleSignIn.getSignedInAccountFromIntent(result)
-            .addOnSuccessListener { googleAccount: GoogleSignInAccount ->
-                Log.d(TAG, "Signed in as " + googleAccount.email)
-                // Use the authenticated account to sign in to the Drive service.
-                val credential = GoogleAccountCredential.usingOAuth2(
-                    this, setOf(DriveScopes.DRIVE)
-                )
-                credential.selectedAccount = googleAccount.account
-                val googleDriveService = Drive.Builder(
-                    AndroidHttp.newCompatibleTransport(),
-                    GsonFactory(),
-                    credential
-                )
-                    .setApplicationName("DatasetBob")
-                    .build()
-                // The DriveServiceHelper encapsulates all REST API and SAF functionality.
-// Its instantiation is required before handling any onClick actions.
-                driveServiceHelper = DriveServiceHelper(googleDriveService).also {
-                    val queryFiles = it.queryFiles()
-                    queryFiles.addOnSuccessListener { println("Files success: ${it.files}") }
-//                    it.queryFiles().addOnCompleteListener() { println("Files complete: ${it}") }
-                    queryFiles.addOnFailureListener() { println("Files failure: ${it}") }
-                    queryFiles.addOnCanceledListener() { println("Files canceled: ${it}") }
-                }
-
-            }
-            .addOnFailureListener { exception: Exception? ->
-                Log.e(TAG, "Unable to sign in.", exception)
-            }
+        viewModel.handleSignInResult(this, resultData)
     }
 
 
@@ -142,6 +77,5 @@ class MainActivity : AppCompatActivity() {
             else -> super.onKeyDown(keyCode, event)
         }
     }
-
 
 }

@@ -28,9 +28,11 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.gridlayout.widget.GridLayout
+import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import androidx.navigation.fragment.navArgs
 import androidx.viewpager.widget.ViewPager
+import com.cauchymop.datasetbob.DatasetBobViewModel
 import com.cauchymop.datasetbob.R
 import com.cauchymop.datasetbob.utils.showImmersive
 import java.io.File
@@ -50,6 +52,7 @@ class GalleryFragment internal constructor() : Fragment() {
   private val labels: List<String> = listOf("smile", "tongue", "duck", "shocked")
 
   private lateinit var mediaList: MutableList<File>
+  private lateinit var viewModel: DatasetBobViewModel
 
   /** Adapter class used to present a fragment containing one photo or video as a page */
   inner class MediaPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
@@ -72,6 +75,11 @@ class GalleryFragment internal constructor() : Fragment() {
     mediaList = rootDirectory.listFiles { file ->
       EXTENSION_WHITELIST.contains(file.extension.toUpperCase())
     }?.sortedDescending()?.toMutableList() ?: mutableListOf()
+  }
+
+  override fun onActivityCreated(savedInstanceState: Bundle?) {
+    super.onActivityCreated(savedInstanceState)
+    viewModel = ViewModelProviders.of(requireActivity()).get(DatasetBobViewModel::class.java)
   }
 
   override fun onCreateView(
@@ -128,13 +136,13 @@ class GalleryFragment internal constructor() : Fragment() {
       onDelete(view)
     }
 
-    view.findViewById<ImageButton>(R.id.choose_dataset).setOnClickListener {
+    view.findViewById<Button>(R.id.choose_dataset).setOnClickListener {
       onChooseDataset()
     }
   }
 
   private fun onChooseDataset() {
-
+    viewModel.requestSignIn(requireActivity())
   }
 
   private fun GalleryFragment.onDelete(view: View) {

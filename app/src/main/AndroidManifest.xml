@@ -1,56 +1,42 @@
-<manifest
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:dist="http://schemas.android.com/apk/distribution"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.cauchymop.datasetbob">
+  <!-- Enable instant app support -->
+  <dist:module dist:instant="true" /> <!-- Declare features -->
+  <uses-feature android:name="android.hardware.camera" /> <!-- Declare permissions -->
+  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Enable instant app support -->
-    <dist:module dist:instant="true" />
-
-    <!-- Declare features -->
-    <uses-feature android:name="android.hardware.camera" />
-
-    <!-- Declare permissions -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.INTERNET" />
-
-    <application
-        android:label="@string/app_name"
-        android:allowBackup="false"
+  <application
+      android:allowBackup="false"
+      android:icon="@mipmap/ic_launcher"
+      android:label="@string/app_name"
+      tools:ignore="GoogleAppIndexingWarning">
+    <activity android:name=".Jus4Fun"></activity>
+    <activity
+        android:name=".MainActivity"
+        android:clearTaskOnLaunch="true"
+        android:configChanges="orientation|keyboardHidden|screenSize"
         android:icon="@mipmap/ic_launcher"
-        tools:ignore="GoogleAppIndexingWarning">
-        <activity
-            android:name="com.cauchymop.datasetbob.MainActivity"
-            android:clearTaskOnLaunch="true"
-            android:theme="@style/AppTheme"
-            android:icon="@mipmap/ic_launcher"
-            android:screenOrientation="fullUser"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:rotationAnimation="seamless"
-            tools:targetApi="O">
+        android:rotationAnimation="seamless"
+        android:screenOrientation="fullUser"
+        android:theme="@style/AppTheme"
+        tools:targetApi="O">
 
-            <!-- Main app intent filter -->
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+      <!-- Main app intent filter -->
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
 
-            <!-- Declare notch support -->
-            <meta-data android:name="android.notch_support" android:value="true"/>
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
 
-        </activity>
-
-<!--        &lt;!&ndash; FileProvider used to share photos with other apps &ndash;&gt;-->
-<!--        <provider-->
-<!--            android:name="androidx.core.content.FileProvider"-->
-<!--            android:authorities="${applicationId}.provider"-->
-<!--            android:exported="false"-->
-<!--            android:grantUriPermissions="true">-->
-<!--            <meta-data-->
-<!--                android:name="android.support.FILE_PROVIDER_PATHS"-->
-<!--                android:resource="@xml/file_paths"/>-->
-<!--        </provider>-->
-
-    </application>
+      <!-- Declare notch support -->
+      <meta-data
+          android:name="android.notch_support"
+          android:value="true" />
+    </activity>
+  </application>
 
 </manifest>
