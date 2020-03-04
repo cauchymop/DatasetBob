@@ -55,6 +55,7 @@
       android:layout_height="wrap_content"
       android:textColor="@color/gallery_text_color"
       android:text="@string/dataset_label"
+      android:gravity="start"
       app:layout_constraintBottom_toTopOf="@+id/buttonGrid"
       app:layout_constraintEnd_toStartOf="@+id/current_dataset_name"
       app:layout_constraintStart_toStartOf="parent"

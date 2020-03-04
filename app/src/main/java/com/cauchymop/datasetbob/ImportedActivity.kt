@@ -181,24 +181,24 @@ class ImportedActivity : AppCompatActivity() {
      * Retrieves the title and content of a file identified by `fileId` and populates the UI.
      */
     private fun readFile(fileId: String) {
-        if (mDriveServiceHelper != null) {
-            Log.d(TAG, "Reading file $fileId")
-            mDriveServiceHelper!!.readFile(fileId)
-                .addOnSuccessListener { nameAndContent: Pair<String?, String?> ->
-                    val name = nameAndContent.first
-                    val content = nameAndContent.second
-                    mFileTitleEditText!!.setText(name)
-                    mDocContentEditText!!.setText(content)
-                    setReadWriteMode(fileId)
-                }
-                .addOnFailureListener { exception: Exception? ->
-                    Log.e(
-                        TAG,
-                        "Couldn't read file.",
-                        exception
-                    )
-                }
-        }
+//        if (mDriveServiceHelper != null) {
+//            Log.d(TAG, "Reading file $fileId")
+//            mDriveServiceHelper!!.readFile(fileId)
+//                .addOnSuccessListener { nameAndContent: Pair<String?, String?> ->
+//                    val name = nameAndContent.first
+//                    val content = nameAndContent.second
+//                    mFileTitleEditText!!.setText(name)
+//                    mDocContentEditText!!.setText(content)
+//                    setReadWriteMode(fileId)
+//                }
+//                .addOnFailureListener { exception: Exception? ->
+//                    Log.e(
+//                        TAG,
+//                        "Couldn't read file.",
+//                        exception
+//                    )
+//                }
+//        }
     }
 
     /**
