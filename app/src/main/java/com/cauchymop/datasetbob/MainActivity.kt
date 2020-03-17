@@ -44,7 +44,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        viewModel = ViewModelProviders.of(this).get(DatasetBobViewModel::class.java)
+        viewModel = createViewModel(this)
         container = findViewById(R.id.fragment_container)
     }
 

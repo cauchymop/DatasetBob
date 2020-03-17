@@ -22,32 +22,31 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProviders
 import com.bumptech.glide.Glide
+import com.cauchymop.datasetbob.DatasetBobViewModel
 import com.cauchymop.datasetbob.R
+import com.cauchymop.datasetbob.createViewModel
 import java.io.File
 
 
 /** Fragment used for each individual page showing a photo inside of [GalleryFragment] */
 class PhotoFragment internal constructor() : Fragment() {
+    private lateinit var viewModel: DatasetBobViewModel
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?) = layoutInflater.inflate(R.layout.fragment_photo, container, false)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ) = layoutInflater.inflate(R.layout.fragment_photo, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        viewModel = createViewModel(requireActivity())
         val args = arguments ?: return
         val fileName = args.getString(FILE_NAME_KEY)
         val resource = fileName?.let { File(it) } ?: R.drawable.ic_photo
-        view.findViewById<TextView>(R.id.classification).text = getClassification(fileName)
         Glide.with(view).load(resource).into(view.findViewById(R.id.photo))
     }
-
-    private fun getClassification(fileName: String?) =
-        """_([a-z]*)?.jpg""".toRegex()
-            .find(fileName?:"")
-            ?.groupValues
-            ?.get(1)
-            ?: getString(R.string.unclassified)
 
     companion object {
         private const val FILE_NAME_KEY = "file_name"

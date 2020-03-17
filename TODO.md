@@ -1,7 +1,10 @@
 TODO
 ====
 
-* When the user classify: upload and delete directly
+* add loading and error states
+* add a loader animation
+* add kotlin extensions to make Tasks nicer
+* introduce dagger2 because it's time
 * Change Permission to app only
 * Better UI for current dataset and label
 * In GalleryFragment:

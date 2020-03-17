@@ -55,14 +55,16 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.setPadding
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProviders
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.cauchymop.datasetbob.KEY_EVENT_ACTION
-import com.cauchymop.datasetbob.KEY_EVENT_EXTRA
-import com.cauchymop.datasetbob.MainActivity
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
-import com.cauchymop.datasetbob.R
+import com.cauchymop.datasetbob.*
 import com.cauchymop.datasetbob.utils.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -78,7 +80,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-private const val TAG = "CameraXBasic"
+private const val TAG = "Camera"
 private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
 private const val PHOTO_EXTENSION = ".jpg"
 private const val RATIO_4_3_VALUE = 4.0 / 3.0
@@ -101,6 +103,7 @@ class CameraFragment : Fragment() {
     private var lensFacing = CameraX.LensFacing.BACK
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
+    private lateinit var viewModel: DatasetBobViewModel
 
     /** Volume down button receiver used to trigger shutter */
     private val volumeDownReceiver = object : BroadcastReceiver() {
@@ -137,6 +140,11 @@ class CameraFragment : Fragment() {
         mainExecutor = ContextCompat.getMainExecutor(requireContext())
     }
 
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
+        super.onActivityCreated(savedInstanceState)
+        viewModel = createViewModel(requireActivity())
+    }
+
     override fun onResume() {
         super.onResume()
         // Make sure that all permissions are still present, since user could have removed them
@@ -161,7 +169,7 @@ class CameraFragment : Fragment() {
             savedInstanceState: Bundle?): View? =
             inflater.inflate(R.layout.fragment_camera, container, false)
 
-    private fun setGalleryThumbnail(file: File) {
+    private fun setGalleryThumbnail(file: File?) {
         // Reference of the view that holds the gallery thumbnail
         val thumbnail = container.findViewById<ImageButton>(R.id.photo_view_button)
 
@@ -211,6 +219,8 @@ class CameraFragment : Fragment() {
                     .getMimeTypeFromExtension(photoFile.extension)
             MediaScannerConnection.scanFile(
                     context, arrayOf(photoFile.absolutePath), arrayOf(mimeType), null)
+
+            viewModel.refreshMediaList()
         }
     }
 
@@ -243,11 +253,7 @@ class CameraFragment : Fragment() {
             bindCameraUseCases()
 
             // In the background, load latest photo taken (if any) for gallery thumbnail
-            lifecycleScope.launch(Dispatchers.IO) {
-                outputDirectory.listFiles { file ->
-                    EXTENSION_WHITELIST.contains(file.extension.toUpperCase())
-                }?.max()?.let { setGalleryThumbnail(it) }
-            }
+            viewModel.currentImage.observe(viewLifecycleOwner, Observer(::setGalleryThumbnail))
         }
     }
 

@@ -44,13 +44,15 @@ class DriveServiceHelper(private val mDriveService: Drive) {
     /**
      * Creates a text file in the user's My Drive folder and returns its file ID.
      */
-    fun createFile(): Task<String> {
+    fun createFile(fileName: String,
+        parents: List<String> = listOf("root"),
+        mimeType: String = "text/plain"): Task<String> {
         return Tasks.call(mExecutor, Callable {
             val metadata =
                 File()
-                    .setParents(listOf("root"))
-                    .setMimeType("text/plain")
-                    .setName("Untitled file")
+                    .setParents(parents)
+                    .setMimeType(mimeType)
+                    .setName(fileName)
             val googleFile =
                 mDriveService.files().create(metadata).execute()
                     ?: throw IOException("Null result when requesting file creation.")
@@ -92,10 +94,11 @@ class DriveServiceHelper(private val mDriveService: Drive) {
      * Updates the file identified by `fileId` with the given `name` and `content`.
      */
     fun saveFile(
-        fileId: String?,
-        name: String?,
-        content: String?
-    ): Task<Nothing?> {
+        fileId: String,
+        name: String,
+        content: ByteArray,
+        mimeType: String
+    ): Task<Unit> {
         return Tasks.call(
             mExecutor,
             Callable {
@@ -106,11 +109,11 @@ class DriveServiceHelper(private val mDriveService: Drive) {
 
                 // Convert content to an AbstractInputStreamContent instance.
                 val contentStream =
-                    ByteArrayContent.fromString("text/plain", content)
+                    ByteArrayContent(mimeType, content)
 
                 // Update the metadata and contents.
                 mDriveService.files().update(fileId, metadata, contentStream).execute()
-                null
+                Unit
             }
         )
     }
@@ -124,12 +127,12 @@ class DriveServiceHelper(private val mDriveService: Drive) {
      * request Drive Full Scope in the [Google
  * Developer's Console](https://play.google.com/apps/publish) and be submitted to Google for verification.
      */
-    fun queryFiles(withName:String?=null): Task<FileList> {
+    fun queryFiles(withName: String? = null): Task<FileList> {
         return Tasks.call(
             mExecutor,
             Callable {
                 val list = mDriveService.files().list()
-                withName?.let { list.setQ("name=\"$it\"")}
+                withName?.let { list.setQ("name=\"$it\"") }
                 list.setSpaces("drive").execute()
             }
         )
