@@ -95,7 +95,7 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
         // The DriveServiceHelper encapsulates all REST API and SAF functionality.
         // Its instantiation is required before handling any onClick actions.
         driveServiceHelper = DriveServiceHelper(googleDriveService).also { helper ->
-          val queryFiles = helper.queryFiles("Dataset")
+          val queryFiles = helper.queryFiles("Datasets")
           queryFiles.addOnSuccessListener { fileList ->
             println("Files success: ${fileList.files}")
             helper.queryFolderFiles(fileList.files[0].id).addOnSuccessListener {
