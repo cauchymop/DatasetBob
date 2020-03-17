@@ -4,6 +4,7 @@ TODO
 * add loading and error states
 * add a loader animation
 * add kotlin extensions to make Tasks nicer
+* Fix layout bug when more than 4 categories
 * introduce dagger2 because it's time
 * Change Permission to app only
 * Better UI for current dataset and label
