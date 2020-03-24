@@ -2,6 +2,8 @@ TODO
 ====
 
 * Take 3 images, start categorizing the middle one, after first one current image is the wrong one (not the one you see)
+  * Debug why Transformations.map does not seem to get called
+  * Remove setCurrentImageIndex and get back to a single Mutable LiveData
 * Change Permission to app only
 
 * add kotlin extensions to make Tasks nicer

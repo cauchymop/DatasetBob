@@ -4,10 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.util.Log
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.*
 import com.cauchymop.datasetbob.utils.DriveServiceHelper
 import com.cauchymop.datasetbob.utils.SingleLiveEvent
 import com.cauchymop.datasetbob.utils.getOutputDirectory
@@ -50,10 +47,28 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
   private val _uploadProgress = SingleLiveEvent<Boolean>()
   val uploadProgress: LiveData<Boolean> = _uploadProgress
 
-  var currentImage = MutableLiveData<java.io.File>()
+  private val _currentImageIndex:MutableLiveData<Int> = MutableLiveData<Int>()
+
+  val currentImageIndex: LiveData<Int> = _currentImageIndex
+
+  val currentImage: LiveData<java.io.File> = Transformations.map(_currentImageIndex) {
+    Log.e(TAG, "Getting currentImage from currentImageIndex = $it")
+    val file = if (images.value.isNullOrEmpty()) {
+      null
+    } else {
+      images.value?.get(it)
+    }
+    Log.e(TAG, "Set to $file")
+    file
+  }
 
   init {
     refreshMediaList()
+  }
+
+  fun setCurrentImageIndex(index:Int) {
+    Log.e(TAG, "Setting currentImageIndex to $index")
+    _currentImageIndex.value = index
   }
 
   fun refreshMediaList() {
@@ -65,7 +80,17 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
       EXTENSION_WHITELIST.contains(file.extension.toUpperCase())
     }?.sortedDescending()?.toMutableList() ?: mutableListOf()
     _images.value = fileList
-    currentImage.value = fileList.firstOrNull()
+    if (_currentImageIndex.value == null) {
+      _currentImageIndex.value = 0
+    } else {
+      _currentImageIndex.value?.let { currentIndex ->
+        if (currentIndex >= fileList.size) {
+          _currentImageIndex.value = fileList.size - 1
+        }
+      }
+    }
+    Log.e(TAG, "currentImageIndex = ${_currentImageIndex.value}")
+
   }
 
   fun requestSignIn(activity: Activity) {
@@ -93,10 +118,10 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
         )
         credential.selectedAccount = googleAccount.account
         val googleDriveService = Drive.Builder(
-            AndroidHttp.newCompatibleTransport(),
-            GsonFactory(),
-            credential
-          )
+          AndroidHttp.newCompatibleTransport(),
+          GsonFactory(),
+          credential
+        )
           .setApplicationName("DatasetBob")
           .build()
         // The DriveServiceHelper encapsulates all REST API and SAF functionality.

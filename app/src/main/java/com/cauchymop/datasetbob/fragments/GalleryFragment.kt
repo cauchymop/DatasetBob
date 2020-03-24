@@ -17,6 +17,7 @@
 package com.cauchymop.datasetbob.fragments
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -68,7 +69,6 @@ class GalleryFragment internal constructor() : Fragment() {
     override fun getCount(): Int = mediaList.size
     override fun getItem(position: Int): Fragment = PhotoFragment.create(mediaList[position])
     override fun getItemPosition(obj: Any): Int = POSITION_NONE
-    fun getImage(position: Int): File? = mediaList[position]
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -155,10 +155,17 @@ class GalleryFragment internal constructor() : Fragment() {
       adapter = MediaPagerAdapter(childFragmentManager)
       addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
         override fun onPageSelected(position: Int) {
-          viewModel.currentImage.postValue((adapter as MediaPagerAdapter).getImage(position))
+          //viewModel.currentImageIndex.postValue(position)
+          viewModel.setCurrentImageIndex(position)
+          Log.e(TAG,"onPageSelected($position)")
         }
       })
     }
+
+    viewModel.currentImageIndex.observe(viewLifecycleOwner, Observer {
+      Log.e(TAG,"GalleryFragment: currentImageIndex changed to $it")
+      mediaViewPager.currentItem = it
+    })
 
     // Handle back button press
     view.findViewById<ImageButton>(R.id.back_button).setOnClickListener {
