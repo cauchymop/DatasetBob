@@ -51,20 +51,22 @@
 
   <TextView
       android:id="@+id/dataset_label"
-      android:layout_width="wrap_content"
+      android:layout_width="0dp"
       android:layout_height="wrap_content"
       android:textColor="@color/gallery_text_color"
       android:text="@string/dataset_label"
+      android:textSize="18sp"
       android:gravity="start"
+      android:paddingStart="8dp"
+      android:paddingEnd="8dp"
       app:layout_constraintBottom_toTopOf="@+id/buttonGrid"
-      app:layout_constraintEnd_toStartOf="@+id/current_dataset_name"
-      app:layout_constraintStart_toStartOf="parent"
       app:layout_constraintTop_toTopOf="@+id/choose_dataset" />
 
   <TextView
       android:id="@+id/current_dataset_name"
-      android:layout_width="wrap_content"
+      android:layout_width="0dp"
       android:layout_height="wrap_content"
+      android:textSize="24sp"
       android:textColor="@color/gallery_text_color"
       app:layout_constraintBottom_toTopOf="@+id/buttonGrid"
       app:layout_constraintEnd_toEndOf="@id/choose_dataset"
@@ -78,8 +80,7 @@
       android:layout_height="wrap_content"
       android:text="@string/choose_dataset"
       app:layout_constraintBottom_toTopOf="@+id/buttonGrid"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintStart_toEndOf="@+id/current_dataset_name"/>
+      app:layout_constraintEnd_toEndOf="parent"/>
 
   <androidx.gridlayout.widget.GridLayout
       android:id="@+id/buttonGrid"
@@ -91,5 +92,26 @@
       tools:background="@android:color/holo_orange_light"
       tools:layout_height="80dp"
       tools:layout_width="0dp" />
+
+  <LinearLayout
+      android:id="@+id/uploading"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:background="#80808080"
+      android:orientation="vertical"
+      android:visibility="gone"
+      android:gravity="center">
+    <ProgressBar
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        app:layout_constraintTop_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:indeterminate="true" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/uploading_image"/>
+  </LinearLayout>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -15,4 +15,5 @@
   <string name="unclassified">Unclassified</string>
   <string name="choose_dataset">Choose…</string>
   <string name="dataset_label">Dataset:</string>
+  <string name="uploading_image">Uploading Image</string>
 </resources>

@@ -17,21 +17,18 @@
 package com.cauchymop.datasetbob.fragments
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.gridlayout.widget.GridLayout
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 import androidx.navigation.fragment.navArgs
 import androidx.viewpager.widget.ViewPager
@@ -39,6 +36,7 @@ import com.cauchymop.datasetbob.DatasetBobViewModel
 import com.cauchymop.datasetbob.R
 import com.cauchymop.datasetbob.createViewModel
 import com.cauchymop.datasetbob.utils.showImmersive
+import com.google.android.material.snackbar.Snackbar
 import java.io.File
 import kotlin.math.ceil
 
@@ -129,6 +127,14 @@ class GalleryFragment internal constructor() : Fragment() {
       if (it.isEmpty()) {
         Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
       }
+    })
+
+    viewModel.uploadProgress.observe(viewLifecycleOwner, Observer {
+      view?.findViewById<View>(R.id.uploading)?.visibility = if (it) View.VISIBLE else View.GONE
+    })
+
+    viewModel.uploadError.observe(viewLifecycleOwner, Observer {
+      Snackbar.make(view!!, it, Snackbar.LENGTH_LONG).show()
     })
   }
 

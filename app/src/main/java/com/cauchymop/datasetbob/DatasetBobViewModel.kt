@@ -9,6 +9,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProviders
 import com.cauchymop.datasetbob.utils.DriveServiceHelper
+import com.cauchymop.datasetbob.utils.SingleLiveEvent
 import com.cauchymop.datasetbob.utils.getOutputDirectory
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -42,6 +43,12 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
 
   private val categoryFolders = MutableLiveData<List<File>>()
   val categories: LiveData<List<File>> = categoryFolders
+
+  private val _uploadError = SingleLiveEvent<String>()
+  val uploadError: LiveData<String> = _uploadError
+
+  private val _uploadProgress = SingleLiveEvent<Boolean>()
+  val uploadProgress: LiveData<Boolean> = _uploadProgress
 
   var currentImage = MutableLiveData<java.io.File>()
 
@@ -122,6 +129,7 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
   }
 
   fun classify(categoryFolder: File) {
+    _uploadProgress.value = true
     val mediaFile = currentImage.value!!
     Log.e(TAG, "Creating ${mediaFile.name}")
     driveServiceHelper!!.createFile(
@@ -138,8 +146,11 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
     }.addOnSuccessListener {
       Log.e(TAG, "Upload successful, deleting $mediaFile")
       deleteCurrentImage()
+      _uploadProgress.value = false
     }.addOnFailureListener { exception: Exception? ->
       Log.e(TAG, "Unable to save file via REST.", exception)
+      _uploadError.value = "Unable to save file" // TODO: Stringify
+      _uploadProgress.value = false
     }
   }
 

@@ -6,5 +6,5 @@
   <color name="icActive">#FFFFFFFF</color>
   <color name="icFocused">#DDFFFFFF</color>
   <color name="icPressed">#AAFFFFFF</color>
-  <color name="gallery_text_color">#FF0000</color>
+  <color name="gallery_text_color">#FFFFFF</color>
 </resources>
