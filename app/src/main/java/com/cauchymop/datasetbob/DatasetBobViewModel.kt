@@ -47,28 +47,16 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
   private val _uploadProgress = SingleLiveEvent<Boolean>()
   val uploadProgress: LiveData<Boolean> = _uploadProgress
 
-  private val _currentImageIndex:MutableLiveData<Int> = MutableLiveData<Int>()
-
-  val currentImageIndex: LiveData<Int> = _currentImageIndex
-
-  val currentImage: LiveData<java.io.File> = Transformations.map(_currentImageIndex) {
-    Log.e(TAG, "Getting currentImage from currentImageIndex = $it")
-    val file = if (images.value.isNullOrEmpty()) {
-      null
-    } else {
-      images.value?.get(it)
-    }
-    Log.e(TAG, "Set to $file")
-    file
-  }
+  private val _currentImage: MutableLiveData<java.io.File> = MutableLiveData<java.io.File>()
+  val currentImage: LiveData<java.io.File> = _currentImage
 
   init {
     refreshMediaList()
   }
 
-  fun setCurrentImageIndex(index:Int) {
-    Log.e(TAG, "Setting currentImageIndex to $index")
-    _currentImageIndex.value = index
+  fun setCurrentImage(img: java.io.File?) {
+    Log.e(TAG, "Setting currentImage to $img")
+    _currentImage.postValue(img)
   }
 
   fun refreshMediaList() {
@@ -80,21 +68,10 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
       EXTENSION_WHITELIST.contains(file.extension.toUpperCase())
     }?.sortedDescending()?.toMutableList() ?: mutableListOf()
     _images.value = fileList
-    if (_currentImageIndex.value == null) {
-      _currentImageIndex.value = 0
-    } else {
-      _currentImageIndex.value?.let { currentIndex ->
-        if (currentIndex >= fileList.size) {
-          _currentImageIndex.value = fileList.size - 1
-        }
-      }
-    }
-    Log.e(TAG, "currentImageIndex = ${_currentImageIndex.value}")
-
   }
 
   fun requestSignIn(activity: Activity) {
-    Log.d("Pizza", "Requesting sign-in")
+    Log.d(TAG, "Requesting sign-in")
     val signInOptions =
       GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
         .requestEmail()

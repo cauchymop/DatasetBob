@@ -57,18 +57,20 @@ class GalleryFragment internal constructor() : Fragment() {
   /** Adapter class used to present a fragment containing one photo or video as a page */
   inner class MediaPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
 
-    private var mediaList: List<java.io.File> = listOf()
+    private var mediaList: List<File> = listOf()
 
-    init {
-      viewModel.images.observe(viewLifecycleOwner, Observer {
-        mediaList = it
-        notifyDataSetChanged()
-      })
+    fun setImageList(images: List<File>) {
+      mediaList = images
+      notifyDataSetChanged()
     }
 
     override fun getCount(): Int = mediaList.size
     override fun getItem(position: Int): Fragment = PhotoFragment.create(mediaList[position])
     override fun getItemPosition(obj: Any): Int = POSITION_NONE
+    fun getImage(position: Int): File? = mediaList[position]
+    fun getIndexOf(image: File?): Int = image?.let {
+      mediaList.indexOf(it)
+    } ?: 0
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,20 +78,6 @@ class GalleryFragment internal constructor() : Fragment() {
 
     // Mark this as a retain fragment, so the lifecycle does not get restarted on config change
     retainInstance = true
-
-//    // Get root directory of media from navigation arguments
-//    val rootDirectory = java.io.File(args.rootDirectory)
-//
-//    // Walk through all files in the root directory
-//    // We reverse the order of the list to present the last photos first
-//    mediaList = rootDirectory.listFiles { file ->
-//      EXTENSION_WHITELIST.contains(file.extension.toUpperCase())
-//    }?.sortedDescending()?.toMutableList() ?: mutableListOf()
-  }
-
-  override fun onActivityCreated(savedInstanceState: Bundle?) {
-    super.onActivityCreated(savedInstanceState)
-//    initViewModel()
   }
 
   private fun initViewModel() {
@@ -126,7 +114,14 @@ class GalleryFragment internal constructor() : Fragment() {
     viewModel.images.observe(viewLifecycleOwner, Observer {
       if (it.isEmpty()) {
         Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
+      } else {
+        getMediaPagerAdapter().setImageList(it)
+        viewModel.setCurrentImage(getMediaPagerAdapter().getImage(mediaViewPager.currentItem))
       }
+    })
+
+    viewModel.currentImage.observe(viewLifecycleOwner, Observer {
+      mediaViewPager.currentItem = getMediaPagerAdapter().getIndexOf(it)
     })
 
     viewModel.uploadProgress.observe(viewLifecycleOwner, Observer {
@@ -155,17 +150,11 @@ class GalleryFragment internal constructor() : Fragment() {
       adapter = MediaPagerAdapter(childFragmentManager)
       addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
         override fun onPageSelected(position: Int) {
-          //viewModel.currentImageIndex.postValue(position)
-          viewModel.setCurrentImageIndex(position)
-          Log.e(TAG,"onPageSelected($position)")
+          Log.e(TAG, "onPageSelected($position)")
+          viewModel.setCurrentImage((adapter as MediaPagerAdapter).getImage(position))
         }
       })
     }
-
-    viewModel.currentImageIndex.observe(viewLifecycleOwner, Observer {
-      Log.e(TAG,"GalleryFragment: currentImageIndex changed to $it")
-      mediaViewPager.currentItem = it
-    })
 
     // Handle back button press
     view.findViewById<ImageButton>(R.id.back_button).setOnClickListener {
@@ -181,6 +170,8 @@ class GalleryFragment internal constructor() : Fragment() {
       onChooseDataset()
     }
   }
+
+  private fun getMediaPagerAdapter() = (mediaViewPager.adapter as MediaPagerAdapter)
 
   private fun onChooseDataset() {
 
