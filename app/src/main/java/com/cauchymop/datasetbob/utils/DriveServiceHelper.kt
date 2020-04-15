@@ -48,7 +48,8 @@ class DriveServiceHelper(private val mDriveService: Drive) {
   fun createFile(
     fileName: String,
     parents: List<String> = listOf("root"),
-    mimeType: String = "text/plain"
+    mimeType: String = "text/plain",
+    customProperties: Map<String, String>? = null
   ): Task<String> {
     return Tasks.call(mExecutor, Callable {
       val metadata =
@@ -56,6 +57,11 @@ class DriveServiceHelper(private val mDriveService: Drive) {
           .setParents(parents)
           .setMimeType(mimeType)
           .setName(fileName)
+
+      customProperties?.let {
+        metadata.setAppProperties(it)
+      }
+
       val googleFile =
         mDriveService.files().create(metadata).execute()
           ?: throw IOException("Null result when requesting file creation.")
@@ -130,12 +136,19 @@ class DriveServiceHelper(private val mDriveService: Drive) {
    * request Drive Full Scope in the [Google
  * Developer's Console](https://play.google.com/apps/publish) and be submitted to Google for verification.
    */
-  fun queryFiles(withName: String? = null): Task<FileList> {
+  fun queryFiles(withName: String? = null, customProperty: kotlin.Pair<String, String>? = null): Task<FileList> {
     return Tasks.call(
       mExecutor,
       Callable {
         val list = mDriveService.files().list()
-        withName?.let { list.setQ("name=\"$it\"") }
+        val bob = mutableListOf<String>()
+        withName?.let { bob.add("name=\"$it\"") }
+        customProperty?.let { bob.add("""appProperties has { key='${it.first}' and value='${it.second}' }""") }
+//        customPropertyKey?.let { bob.add("""name="$customPropertyKey"""") }
+        if (bob.isNotEmpty()) {
+          list.q = bob.joinToString(separator = " and ")
+          println("list.q = ${list.q}")
+        }
         list.setSpaces("drive").execute()
       }
     )
@@ -201,16 +214,16 @@ class DriveServiceHelper(private val mDriveService: Drive) {
   }
 
   fun addPermission(fileId: String, emailAddress: String) =
-      Tasks.call(
-          mExecutor,
-          Callable {
-              mDriveService.permissions().create(
-                  fileId, Permission()
-                      .setType("user")
-                      .setRole("writer")
-                      .setEmailAddress(emailAddress)
-              ).execute()
-          }
-      )
+    Tasks.call(
+      mExecutor,
+      Callable {
+        mDriveService.permissions().create(
+          fileId, Permission()
+            .setType("user")
+            .setRole("writer")
+            .setEmailAddress(emailAddress)
+        ).execute()
+      }
+    )
 
 }

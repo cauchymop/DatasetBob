@@ -2,7 +2,8 @@ TODO
 ====
 
 * Change Permission to app only
-  * Check whether we need hte DRIVE_METADATA to give permissions (probably not?)
+  * It does not seem to work after all!!! :-(
+  * Instead: USE FIREBASE TO HANDLE DATASETS DEFINITIONS + EXPORT TO DRIVE
   * Implement a Dataset editor to:
     * create a dataset
     * create its labels

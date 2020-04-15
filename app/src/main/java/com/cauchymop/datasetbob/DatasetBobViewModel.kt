@@ -21,7 +21,6 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.DriveScopes
 import com.google.api.services.drive.model.File
-import com.google.api.services.drive.model.Permission
 
 private const val REQUEST_CODE_SIGN_IN = 1121
 private const val REQUEST_CODE_OPEN_DOCUMENT = 2532
@@ -29,7 +28,6 @@ private const val TAG = "DatasetBobViewModel"
 
 private const val DRIVE_SCOPE = DriveScopes.DRIVE_FILE
 private const val FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
-private const val ROOT_FOLDER = "Datasets"
 private const val DATASET_SAMPLE_FOLDER = "Sample"
 
 class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel() {
@@ -113,33 +111,30 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
         // The DriveServiceHelper encapsulates all REST API and SAF functionality.
         // Its instantiation is required before handling any onClick actions.
         driveServiceHelper = DriveServiceHelper(googleDriveService).also { helper ->
-          helper.queryFiles(ROOT_FOLDER)
+          val customProperty: Pair<String, String> = "type" to "Dataset"
+          helper.queryFiles(customProperty = customProperty)
             .addOnSuccessListener { fileList ->
-              val rootInstances = fileList.files
-              println("Root instances: $rootInstances")
-              if (rootInstances.isEmpty()) {
-                println("No root instance found. Creating sample hierarchy.")
-                driveServiceHelper.createFile(ROOT_FOLDER, mimeType = FOLDER_MIME_TYPE)
-                  .continueWithTask {
-                    val rootId = it.result!!
-                    driveServiceHelper.createFile(
-                      DATASET_SAMPLE_FOLDER,
-                      parents = listOf(rootId),
-                      mimeType = FOLDER_MIME_TYPE
-                    )
-                  }
-                  .continueWithTask { sampleFolderIdTask ->
+              val datasets = fileList.files
+              println("Datasets: $datasets")
+              if (datasets.isEmpty()) {
+                println("No dataset found. Creating sample hierarchy.")
+                driveServiceHelper.createFile(
+                  DATASET_SAMPLE_FOLDER + "_${googleAccount.displayName}",
+                  mimeType = FOLDER_MIME_TYPE,
+                  customProperties = mapOf(customProperty)
+                ).continueWithTask { sampleFolderIdTask ->
                     val sampleFolderId = sampleFolderIdTask.result!!
                     with(driveServiceHelper) {
                       addPermission(sampleFolderId, "jerome.abela@gmail.com")
                       addPermission(sampleFolderId, "olivier.bonal@gmail.com")
+                      addPermission(sampleFolderId, "cauchymop@gmail.com")
                       createFile(
-                        "label1",
+                        "label1_${googleAccount.displayName}",
                         parents = listOf(sampleFolderId),
                         mimeType = FOLDER_MIME_TYPE
                       );
                       createFile(
-                        "label2",
+                        "label2_${googleAccount.displayName}",
                         parents = listOf(sampleFolderId),
                         mimeType = FOLDER_MIME_TYPE
                       );
@@ -152,11 +147,7 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
                   }
 
               } else {
-                val root = rootInstances[0]
-                helper.queryFolderFiles(root.id).addOnSuccessListener {
-                  _datasets.value = it.files
-                  println("Read success: $it")
-                }
+                _datasets.value = datasets
               }
             }
             .addOnFailureListener { println("Files failure: ${it}") }
