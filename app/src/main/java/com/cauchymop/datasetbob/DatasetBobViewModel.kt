@@ -84,7 +84,7 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
     val signInOptions =
       GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
         .requestEmail()
-        .requestScopes(Scope(DriveScopes.DRIVE_FILE), Scope(DriveScopes.DRIVE_METADATA))
+        .requestScopes(Scope(DriveScopes.DRIVE_FILE))
         .build()
     val client = GoogleSignIn.getClient(activity as Activity, signInOptions)
     // The result of the sign-in Intent is handled in onActivityResult.
@@ -100,7 +100,7 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
         Log.d(TAG, "Signed in as " + googleAccount.email)
         // Use the authenticated account to sign in to the Drive service.
         val credential = GoogleAccountCredential.usingOAuth2(
-          activity, setOf(DriveScopes.DRIVE_FILE, DriveScopes.DRIVE_METADATA)
+          activity, setOf(DriveScopes.DRIVE_FILE)
         )
         credential.selectedAccount = googleAccount.account
         val googleDriveService = Drive.Builder(
