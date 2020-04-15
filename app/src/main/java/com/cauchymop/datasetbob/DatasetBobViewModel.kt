@@ -4,7 +4,10 @@ import android.app.Activity
 import android.content.Intent
 import android.util.Log
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.*
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProviders
 import com.cauchymop.datasetbob.utils.DriveServiceHelper
 import com.cauchymop.datasetbob.utils.SingleLiveEvent
 import com.cauchymop.datasetbob.utils.getOutputDirectory
@@ -18,14 +21,20 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.DriveScopes
 import com.google.api.services.drive.model.File
+import com.google.api.services.drive.model.Permission
 
 private const val REQUEST_CODE_SIGN_IN = 1121
 private const val REQUEST_CODE_OPEN_DOCUMENT = 2532
 private const val TAG = "DatasetBobViewModel"
 
+private const val DRIVE_SCOPE = DriveScopes.DRIVE_FILE
+private const val FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
+private const val ROOT_FOLDER = "Datasets"
+private const val DATASET_SAMPLE_FOLDER = "Sample"
+
 class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel() {
 
-  private var driveServiceHelper: DriveServiceHelper? = null
+  private lateinit var driveServiceHelper: DriveServiceHelper
 
   private val EXTENSION_WHITELIST = arrayOf("JPG")
 
@@ -75,7 +84,7 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
     val signInOptions =
       GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
         .requestEmail()
-        .requestScopes(Scope(DriveScopes.DRIVE))
+        .requestScopes(Scope(DriveScopes.DRIVE_FILE), Scope(DriveScopes.DRIVE_METADATA))
         .build()
     val client = GoogleSignIn.getClient(activity as Activity, signInOptions)
     // The result of the sign-in Intent is handled in onActivityResult.
@@ -91,7 +100,7 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
         Log.d(TAG, "Signed in as " + googleAccount.email)
         // Use the authenticated account to sign in to the Drive service.
         val credential = GoogleAccountCredential.usingOAuth2(
-          activity, setOf(DriveScopes.DRIVE)
+          activity, setOf(DriveScopes.DRIVE_FILE, DriveScopes.DRIVE_METADATA)
         )
         credential.selectedAccount = googleAccount.account
         val googleDriveService = Drive.Builder(
@@ -104,16 +113,54 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
         // The DriveServiceHelper encapsulates all REST API and SAF functionality.
         // Its instantiation is required before handling any onClick actions.
         driveServiceHelper = DriveServiceHelper(googleDriveService).also { helper ->
-          val queryFiles = helper.queryFiles("Datasets")
-          queryFiles.addOnSuccessListener { fileList ->
-            println("Files success: ${fileList.files}")
-            helper.queryFolderFiles(fileList.files[0].id).addOnSuccessListener {
-              _datasets.value = it.files
-              println("Read succes: $it")
+          helper.queryFiles(ROOT_FOLDER)
+            .addOnSuccessListener { fileList ->
+              val rootInstances = fileList.files
+              println("Root instances: $rootInstances")
+              if (rootInstances.isEmpty()) {
+                println("No root instance found. Creating sample hierarchy.")
+                driveServiceHelper.createFile(ROOT_FOLDER, mimeType = FOLDER_MIME_TYPE)
+                  .continueWithTask {
+                    val rootId = it.result!!
+                    driveServiceHelper.createFile(
+                      DATASET_SAMPLE_FOLDER,
+                      parents = listOf(rootId),
+                      mimeType = FOLDER_MIME_TYPE
+                    )
+                  }
+                  .continueWithTask { sampleFolderIdTask ->
+                    val sampleFolderId = sampleFolderIdTask.result!!
+                    with(driveServiceHelper) {
+                      addPermission(sampleFolderId, "jerome.abela@gmail.com")
+                      addPermission(sampleFolderId, "olivier.bonal@gmail.com")
+                      createFile(
+                        "label1",
+                        parents = listOf(sampleFolderId),
+                        mimeType = FOLDER_MIME_TYPE
+                      );
+                      createFile(
+                        "label2",
+                        parents = listOf(sampleFolderId),
+                        mimeType = FOLDER_MIME_TYPE
+                      );
+                    }
+                  }
+                  .addOnSuccessListener {
+                    Log.e(TAG, "Sample creation successful $it")
+                  }.addOnFailureListener { exception: Exception? ->
+                    Log.e(TAG, "Unable to create sample.", exception)
+                  }
+
+              } else {
+                val root = rootInstances[0]
+                helper.queryFolderFiles(root.id).addOnSuccessListener {
+                  _datasets.value = it.files
+                  println("Read success: $it")
+                }
+              }
             }
-          }
-          queryFiles.addOnFailureListener() { println("Files failure: ${it}") }
-          queryFiles.addOnCanceledListener() { println("Files canceled") }
+            .addOnFailureListener { println("Files failure: ${it}") }
+            .addOnCanceledListener { println("Files canceled") }
         }
 
       }
@@ -124,7 +171,7 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
 
   fun selectDataset(selected: File) {
     _currentDataset.value = selected
-    driveServiceHelper?.queryFolderFiles(selected.id)?.addOnSuccessListener {
+    driveServiceHelper.queryFolderFiles(selected.id).addOnSuccessListener {
       categoryFolders.value = it.files
       println("Categories: $it")
     }
@@ -134,12 +181,12 @@ class DatasetBobViewModel(private val rootDirectory: java.io.File) : ViewModel()
     _uploadProgress.value = true
     val mediaFile = currentImage.value!!
     Log.e(TAG, "Creating ${mediaFile.name}")
-    driveServiceHelper!!.createFile(
+    driveServiceHelper.createFile(
       fileName = mediaFile.name,
       parents = listOf(categoryFolder.id)
     ).continueWithTask {
       Log.e(TAG, "Uploading $mediaFile")
-      driveServiceHelper?.saveFile(
+      driveServiceHelper.saveFile(
         it.result!!,
         mediaFile.name,
         mediaFile.readBytes(),
